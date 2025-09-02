@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChefHat, Sparkles, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RecipeGenerator from './components/RecipeGenerator';
