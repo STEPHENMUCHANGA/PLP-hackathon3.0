@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { ChefHat, Sparkles, Clock, Users } from 'lucide-react';
+import { ChefHat, Sparkles, Clock, Users, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RecipeGenerator from './components/RecipeGenerator';
 import AuthModal from './components/AuthModal';
+import PaymentModal from './components/PaymentModal';
 import Header from './components/Header';
+import { useAuth } from './hooks/useAuth';
 
 function App() {
+  const { loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
   const openAuth = (mode: 'signin' | 'signup') => {
@@ -14,6 +18,16 @@ function App() {
     setShowAuthModal(true);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+        <div className="text-center">
+          <ChefHat className="w-12 h-12 mx-auto text-orange-500 mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading iRecipe...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       <Header onOpenAuth={openAuth} />
@@ -81,12 +95,33 @@ function App() {
         )}
       </AnimatePresence>
 
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <PaymentModal onClose={() => setShowPaymentModal(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Footer */}
       <footer className="bg-white border-t border-orange-100 py-8 mt-16">
         <div className="max-w-4xl mx-auto text-center px-4">
-          <p className="text-gray-600">
+          <div className="space-y-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowPaymentModal(true)}
+              className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium"
+            >
+              <Heart className="w-5 h-5" />
+              Support SDG 2: Zero Hunger
+            </motion.button>
+            <p className="text-gray-600">
             ⚡ Built with React + AI | Hackathon Project © 2025 iRecipe
-          </p>
+            </p>
+            <p className="text-sm text-gray-500">
+              🌱 Supporting sustainable food systems and ending hunger worldwide
+            </p>
+          </div>
         </div>
       </footer>
     </div>

@@ -1,12 +1,15 @@
 import React from 'react';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
   onOpenAuth: (mode: 'signin' | 'signup') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
+  const { user, signOut } = useAuth();
+
   return (
     <motion.nav 
       initial={{ y: -20, opacity: 0 }}
@@ -32,22 +35,42 @@ const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
             <a href="#recipes" className="text-gray-600 hover:text-orange-500 transition-colors font-medium">
               Recipes
             </a>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onOpenAuth('signin')}
-              className="text-orange-500 hover:text-orange-600 transition-colors font-medium"
-            >
-              Sign In
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onOpenAuth('signup')}
-              className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors font-medium"
-            >
-              Sign Up
-            </motion.button>
+            
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-700 font-medium">
+                  Welcome, {user.name}!
+                </span>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={signOut}
+                  className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition-colors font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </motion.button>
+              </div>
+            ) : (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onOpenAuth('signin')}
+                  className="text-orange-500 hover:text-orange-600 transition-colors font-medium"
+                >
+                  Sign In
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onOpenAuth('signup')}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                >
+                  Sign Up
+                </motion.button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Mail, Lock, User } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface AuthModalProps {
   mode: 'signin' | 'signup';
@@ -8,22 +9,47 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose }) => {
+  const { signUp, signIn } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    
     if (mode === 'signup' && formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      setMessage('Passwords do not match!');
+      setLoading(false);
       return;
     }
-    // Handle authentication logic here
-    console.log(`${mode} attempt:`, formData);
-    onClose();
+    
+    try {
+      let result;
+      if (mode === 'signup') {
+        result = await signUp(formData.name, formData.email, formData.password);
+      } else {
+        result = await signIn(formData.email, formData.password);
+      }
+      
+      setMessage(result.message);
+      
+      if (result.success) {
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      }
+    } catch (error) {
+      setMessage('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +86,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {message && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            message.includes('successfully') || message.includes('successful')
+              ? 'bg-green-100 text-green-700 border border-green-200'
+              : 'bg-red-100 text-red-700 border border-red-200'
+          }`}>
+            {message}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
@@ -122,9 +158,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose }) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors font-medium"
+            disabled={loading}
+            className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {mode === 'signin' ? 'Sign In' : 'Create Account'}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Processing...
+              </>
+            ) : (
+              mode === 'signin' ? 'Sign In' : 'Create Account'
+            )}
           </motion.button>
         </form>
       </motion.div>
