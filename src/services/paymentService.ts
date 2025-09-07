@@ -48,4 +48,4 @@ export const processPayment = async (request: PaymentRequest) => {
       message: 'Payment processing failed. Please try again.'
     }
   }
-}</parameter>
+}
