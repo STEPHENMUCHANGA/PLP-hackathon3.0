@@ -156,4 +156,4 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onClose }) => {
   );
 };
 
-export default PaymentModal;</parameter>
+export default PaymentModal;

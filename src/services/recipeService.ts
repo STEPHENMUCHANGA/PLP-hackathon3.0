@@ -68,4 +68,4 @@ export const getUserRecipes = async (userId: string) => {
     console.error('Error fetching user recipes:', error)
     return []
   }
-}</parameter>
+}

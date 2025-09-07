@@ -101,4 +101,4 @@ export const useAuth = () => {
     signIn,
     signOut,
   }
-}</parameter>
+}
