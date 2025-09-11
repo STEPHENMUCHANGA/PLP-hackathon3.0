@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, ChefHat, Globe, Clock, Users } from 'lucide-react';
+import { Sparkles, Loader2, ChefHat, Globe, Clock, Users, BookOpen } from 'lucide-react';
 import { generateRecipe, RecipeRequest } from '../services/recipeService';
+import { findMatchingRecipes, getRandomRecipes, AIRecipe } from '../services/aiRecipeService';
 import { useAuth } from '../hooks/useAuth';
+import RecipeCard from './RecipeCard';
+import RecipeModal from './RecipeModal';
 
 const RecipeGenerator: React.FC = () => {
   const { user } = useAuth();
@@ -12,6 +15,9 @@ const RecipeGenerator: React.FC = () => {
   const [region, setRegion] = useState('Global');
   const [recipe, setRecipe] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [aiRecipes, setAiRecipes] = useState<(AIRecipe & { matchScore?: number })[]>([]);
+  const [selectedRecipe, setSelectedRecipe] = useState<(AIRecipe & { matchScore?: number }) | null>(null);
+  const [showingRandomRecipes, setShowingRandomRecipes] = useState(false);
 
   const regions = [
     { value: 'Global', label: '🌍 Global', flag: '🌍' },
@@ -30,6 +36,77 @@ const RecipeGenerator: React.FC = () => {
     }
 
     setIsLoading(true);
+    setAiRecipes([]);
+    setRecipe('');
+    setShowingRandomRecipes(false);
+    
+    try {
+      // First, try to find matching AI recipes
+      const ingredientList = ingredients.split(',').map(ing => ing.trim()).filter(ing => ing.length > 0);
+      const matchingRecipes = await findMatchingRecipes(ingredientList, region);
+      
+      if (matchingRecipes.length > 0) {
+        setAiRecipes(matchingRecipes);
+      } else {
+        // Fallback to simple recipe generation if no matches found
+        const request: RecipeRequest = {
+          ingredients,
+          servings,
+          prepTime,
+          region,
+        };
+        
+        const generatedRecipe = await generateRecipe(request, user?.id);
+        setRecipe(generatedRecipe);
+      }
+    } catch (error) {
+      console.error('Error generating recipe:', error);
+      alert('Failed to generate recipe. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleShowRandomRecipes = async () => {
+    setIsLoading(true);
+    setRecipe('');
+    setAiRecipes([]);
+    
+    try {
+      const randomRecipes = await getRandomRecipes(6);
+      setAiRecipes(randomRecipes);
+      setShowingRandomRecipes(true);
+    } catch (error) {
+      console.error('Error fetching random recipes:', error);
+      alert('Failed to load recipes. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRecipeClick = (recipe: AIRecipe & { matchScore?: number }) => {
+    setSelectedRecipe(recipe);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedRecipe(null);
+  };
+
+  const clearResults = () => {
+    setRecipe('');
+    setAiRecipes([]);
+    setShowingRandomRecipes(false);
+  };
+
+  const handleGenerateRecipeOld = async () => {
+    if (!ingredients.trim()) {
+      alert('Please enter some ingredients!');
+      return;
+    }
+
+    setIsLoading(true);
+    setAiRecipes([]);
+    setShowingRandomRecipes(false);
     
     try {
       const request: RecipeRequest = {
@@ -135,27 +212,94 @@ const RecipeGenerator: React.FC = () => {
             </div>
             
             {/* Generate Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleGenerateRecipe}
-              disabled={isLoading}
-              className="w-full bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Generate Recipe
-                </>
-              )}
-            </motion.button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleGenerateRecipe}
+                disabled={isLoading}
+                className="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading && !showingRandomRecipes ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Finding Recipes...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Find Recipes
+                  </>
+                )}
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleShowRandomRecipes}
+                disabled={isLoading}
+                className="bg-white text-orange-500 border border-orange-500 px-8 py-3 rounded-lg hover:bg-orange-50 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading && showingRandomRecipes ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-5 h-5" />
+                    Browse Recipes
+                  </>
+                )}
+              </motion.button>
+            </div>
+            
+            {(recipe || aiRecipes.length > 0) && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={clearResults}
+                className="w-full bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+              >
+                Clear Results
+              </motion.button>
+            )}
           </div>
 
+          {/* AI Recipe Results */}
+          <AnimatePresence>
+            {aiRecipes.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-orange-500" />
+                    {showingRandomRecipes ? 'Featured Recipes' : 'Matching Recipes'}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {aiRecipes.length} recipe{aiRecipes.length !== 1 ? 's' : ''} found
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {aiRecipes.map((recipe) => (
+                    <RecipeCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      onClick={() => handleRecipeClick(recipe)}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Simple Recipe Result */}
           <AnimatePresence>
             {recipe && (
               <motion.div
@@ -193,13 +337,23 @@ const RecipeGenerator: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {!recipe && !isLoading && (
+          {!recipe && !isLoading && aiRecipes.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <ChefHat className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Your personalized recipe will appear here...</p>
+              <p>Enter ingredients to find matching recipes, or browse our collection!</p>
             </div>
           )}
         </motion.div>
+        
+        {/* Recipe Modal */}
+        <AnimatePresence>
+          {selectedRecipe && (
+            <RecipeModal
+              recipe={selectedRecipe}
+              onClose={handleCloseModal}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

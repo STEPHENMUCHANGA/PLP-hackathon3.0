@@ -5,6 +5,7 @@ import RecipeGenerator from './components/RecipeGenerator';
 import AuthModal from './components/AuthModal';
 import PaymentModal from './components/PaymentModal';
 import Header from './components/Header';
+import { initializeRecipeDatabase } from './services/aiRecipeService';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
@@ -12,6 +13,11 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+
+  // Initialize recipe database on app load
+  React.useEffect(() => {
+    initializeRecipeDatabase();
+  }, []);
 
   const openAuth = (mode: 'signin' | 'signup') => {
     setAuthMode(mode);
